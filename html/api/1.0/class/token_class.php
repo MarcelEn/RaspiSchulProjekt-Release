@@ -4,7 +4,14 @@ require_once 'data/calendar_database.php';
 
 class Token {
 
-    public function __construct($token, $user_id, $active, $long_time, $used, $created) {
+    public function __construct(
+        $token,
+        $user_id,
+        $active,
+        $long_time,
+        $used,
+        $created
+    ) {
         $this->token = $token;
         $this->user_id = $user_id;
         $this->active = $active;
@@ -15,14 +22,18 @@ class Token {
 
     public static function byArray($array)
     {
+        $created = DateTime::createFromFormat(
+            SQL_TIMESTAMP,
+            $array['created']
+        );
         $token = new Token(
-                $array['token'],
-                $array['user_id'],
-                $array['active'],
-                $array['long_time'],
-                $array['used'],
-                DateTime::createFromFormat(SQL_TIMESTAMP, $array['created'])
-            );
+            $array['token'],
+            $array['user_id'],
+            $array['active'],
+            $array['long_time'],
+            $array['used'],
+            $created
+        );
         return $token;
     }
 
@@ -46,23 +57,23 @@ class Token {
     }
 
     public static function deleteAllTokens($uid){
-      $database = CalendarDatabase::getStd();
-      $sql = $database->prepare(
-          'DELETE FROM AccessToken WHERE user_id=?'
-      );
-      $sql->bind_param('i', $uid);
-      $success = $sql->execute();
-      return $success;
+        $database = CalendarDatabase::getStd();
+        $sql = $database->prepare(
+            'DELETE FROM AccessToken WHERE user_id=?'
+        );
+        $sql->bind_param('i', $uid);
+        $success = $sql->execute();
+        return $success;
     }
 
     public static function validate()
     {
-          $token = Token::get($_COOKIE["token"]);
-          if (!is_null($token) && !$token->isOutdated()) {
-                $token->reset();
-                return true;
-          }
-          return false;
+        $token = Token::get($_COOKIE["token"]);
+        if (!is_null($token) && !$token->isOutdated()) {
+            $token->reset();
+            return true;
+        }
+        return false;
     }
 
     private function getAge()
@@ -147,15 +158,15 @@ class Token {
     public function set($user_id, $long_time)
     {
         $newToken = self::getActiveToken($user_id, $long_time);
-            setcookie("token", $newToken->token, 0, '/');
+        setcookie("token", $newToken->token, 0, '/');
     }
 
     private function reset()
     {
-            $this->setUsed(1);
-            $newToken = self::getActiveToken($this->user_id, $this->long_time);
-            $newToken->setUsed(0);
-            setcookie("token", $newToken->token, 0, '/');
+        $this->setUsed(1);
+        $newToken = self::getActiveToken($this->user_id, $this->long_time);
+        $newToken->setUsed(0);
+        setcookie("token", $newToken->token, 0, '/');
     }
 
     private static function getActiveToken($user_id, $long_time)
