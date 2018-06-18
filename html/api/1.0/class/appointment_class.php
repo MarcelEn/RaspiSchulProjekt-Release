@@ -20,18 +20,18 @@ class Appointment {
         $this->appointment_title = $appointment_title;
         $this->appointment_description = $appointment_description;
     }
-    
-    static function bySQLArray($array)
+
+    public static function bySQLArray($array)
     {
         $start = DateTime::createFromFormat(SQL_TIMESTAMP, $array['start']);
         $end = DateTime::createFromFormat(SQL_TIMESTAMP, $array['end']);
-        $array['start'] = $start->getTimestamp()*1000; 
+        $array['start'] = $start->getTimestamp()*1000;
         $array['end'] =  $end->getTimestamp()*1000;
         $appointment = Appointment::byArray($array);
         return $appointment;
     }
 
-    static function byArray($array)
+    public static function byArray($array)
     {
         $start=convertTimestampToDateTime($array['start']);
         $end=convertTimestampToDateTime($array['end']);
@@ -45,8 +45,7 @@ class Appointment {
         );
     }
 
-    //TODO: change name to byId()
-    static function get($id)
+    public static function byId($id)
     {
         $getStatement = 'SELECT * FROM Appointment WHERE appointment_id = ?';
         $database = CalendarDatabase::getStd();
@@ -63,8 +62,7 @@ class Appointment {
         return null;
     }
 
-    //TODO: change name to create()
-    function post()
+    public function create()
     {
         $postStatement =
             'INSERT INTO Appointment (start, end, calendar_id, ' .
@@ -88,8 +86,7 @@ class Appointment {
         return null;
     }
 
-    //TODO: change name to update()
-    function put()
+    public function update()
     {
         $putStatement = 'INSERT INTO Appointment (' .
                 'appointment_id, start, end, calendar_id, appointment_title,' .
@@ -113,14 +110,14 @@ class Appointment {
             $this->appointment_title,
             $this->appointment_description
         );
-        
+
         if ($sql->execute()) {
             return $database->getInsertId();
         }
         return false;
     }
 
-    function delete()
+    public function delete()
     {
         $deleteStatement = 'DELETE FROM Appointment WHERE appointment_id = ?';
         $database = CalendarDatabase::getStd();
@@ -130,8 +127,7 @@ class Appointment {
         return $sql->execute();
     }
 
-    //TODO: change name to deleteByCalendar()
-    public static function deleteAllAppointments($calendar_id) {
+    public static function deleteByCalendar($calendar_id) {
         $database = CalendarDatabase::getStd();
         $sqlString =
             'SELECT * FROM Appointment' .
@@ -146,8 +142,7 @@ class Appointment {
         }
     }
 
-    //TODO: change name to search()
-    static function searchAppointments($after, $before, $calId)
+    public static function search($after, $before, $calId)
     {
         $searchStatement =
             'SELECT * FROM Appointment' .
@@ -180,7 +175,7 @@ class Appointment {
         return $resultArray;
     }
 
-    function toJSON()
+    public function toJSON()
     {
         $start = convertDateTimeToTimestamp($this->start);
         $end = convertDateTimeToTimestamp($this->end);

@@ -4,131 +4,146 @@ require_once 'class/token_class.php';
 require_once 'class/calendar_class.php';
 require_once 'class/appointment_class.php';
 
-$app->get('/rest/appointment/{id}', function ($requ, $resp, $args) {
+$app->get('/rest/appointment/{id}', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
 
-    $app = Appointment::get($args["id"]);
-
-    if (is_null($app)) {
-        return $resp->withStatus(NOT_FOUND);
+    $appointment = Appointment::byId($args["id"]);
+    if (is_null($appointment)) {
+        return $response->withStatus(NOT_FOUND);
     }
 
-    $cal = CalendarModel::get($app->calendar_id);
-    $owner = $cal->owner_id;
-    $vis = $cal->visibility;
-
-    if (!Token::validateUser($owner) && $vis == V_PRIVATE) {
-        return $resp->withStatus(FORBIDDEN);
+    $calendar = CalendarModel::byId($appointment->calendar_id);
+    if (
+        !Token::validateUser($calendar->owner_id) &&
+        $calendar->visibility == V_PRIVATE
+    ) {
+        return $response->withStatus(FORBIDDEN);
     }
 
-    $json = $app->toJSON();
-    $resp->getBody()->write($json);
-
+    $json = $appointment->toJSON();
+    $response->getBody()->write($json);
     return $resp;
 });
 
-$app->post('/rest/appointment', function ($requ, $resp, $args) {
+$app->post('/rest/appointment', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
 
-    $app = Appointment::byArray($requ->getParsedBody());
+    $appointment = Appointment::byArray($request->getParsedBody());
 
-    if($app->start > $app->end) {
-        return $resp->withStatus(400);
+    if($appointment->start > $appointment->end) {
+        return $response->withStatus(400);
     }
 
-    $cal = CalendarModel::get($app->calendar_id);
-    $owner = $cal->owner_id;
-
-    if (!Token::validateUser($owner)) {
-        return $resp->withStatus(FORBIDDEN);
-    }
-
-    $id = $app->post();
-    $resp->getBody()->write($id);
-
-    return $resp->withStatus(CREATED);
-});
-
-$app->put('/rest/appointment', function ($requ, $resp, $args) {
-    if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
-    }
-
-    $app = CalendarModel::byArray($requ->getParsedBody());
-    $app_old = CalendarModel::get($cal->calendar_id);
-    $calId = $app->calendar_id;
-
-    $cal = CalendarModel::get($calId);
-    $owner = $cal->owner_id;
-    $vis = $cal->visibility;
+    $calendar = CalendarModel::byId($appointment->calendar_id);
 
     if (
-        !Token::validateUser($owner) && ($vis<V_PUBLIC || is_null($app_old) )
+        !Token::validateUser($calendar->owner_id) &&
+        $calendar->visibility < V_PUBLIC
     ) {
         return $resp->withStatus(FORBIDDEN);
     }
 
-    $id = $app->put();
+    $id = $app->create();
     $resp->getBody()->write($id);
-
     return $resp->withStatus(CREATED);
 });
 
-$app->delete('/rest/appointment/{id}', function ($requ, $resp, $args) {
+$app->put('/rest/appointment', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
 
-    $app = Appointment::get($args['id']);
+    $appointment = CalendarModel::byArray($request->getParsedBody());
+    $oldAppointment = CalendarModel::byId($calendar->calendar_id);
+    $calendar = CalendarModel::byId($appointment->calendar_id);
 
-    if (is_null($app)) {
-        return $resp->withStatus(NOT_FOUND);
+    if (
+        !Token::validateUser($calendar->owner_id) &&
+        ($calendar->visibility<V_PUBLIC || is_null($oldAppointment))
+    ) {
+        return $response->withStatus(FORBIDDEN);
     }
 
-    $cal = CalendarModel::get($app->calendar_id);
-
-    if (is_null($cal)) {
-        return $resp->withStatus(NOT_FOUND);
-    }
-
-    if (!Token::validateUser($cal->owner_id)){
-        return $resp->withStatus(FORBIDDEN);
-    }
-
-    if($app->delete()) {
-        return $resp->withStatus(NO_CONTENT);
-    }
-
-    return $resp->withStatus(500);
+    $id = $appointment->update();
+    $response->getBody()->write($id);
+    return $response->withStatus(CREATED);
 });
 
-$app->get('/rest/appointment', function ($requ, $resp, $args) {
+$app->delete('/rest/appointment/{id}', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
 
-    $after = $requ->getQueryParam('after', NULL);
-    $before = $requ->getQueryParam('before', NULL);
-    $calId = $requ->getQueryParam('calendar_id', NULL);
-    $cal = CalendarModel::get($calId);
+    $appointment = Appointment::byId($args['id']);
 
-    if (is_null($cal)) {
-        return $resp->getBody()->write(arrayToJSON(array()));
+    if (is_null($appointment)) {
+        return $response->withStatus(NOT_FOUND);
     }
 
-    $owner = $cal->owner_id;
-    $visibility = $cal->visibility;
+    $calendar = CalendarModel::byId($appointment->calendar_id);
 
-    if (!Token::validateUser($owner) && $visibility == V_PRIVATE) {
-        return $resp->withStatus(FORBIDDEN);
+    if (is_null($calendar)) {
+        return $response->withStatus(NOT_FOUND);
     }
-    $json = arrayToJSON(
-        Appointment::searchAppointments($after, $before, $calId)
-    );
-    return $resp->getBody()->write($json);
+
+    if (!Token::validateUser($calendar->owner_id)){
+        return $response->withStatus(FORBIDDEN);
+    }
+
+    if($appointment->delete()) {
+        return $response->withStatus(NO_CONTENT);
+    }
+
+    return $response->withStatus(500);
+});
+
+$app->get('/rest/appointment', function (
+    $request,
+    $response,
+    $args
+) {
+    if (!Token::validate()) {
+        return $response->withStatus(UNAUTHORIZED);
+    }
+
+    $after = $request->getQueryParam('after', NULL);
+    $before = $request->getQueryParam('before', NULL);
+    $calendarId = $request->getQueryParam('calendar_id', NULL);
+
+    $calendar = CalendarModel::byId($calendarId);
+    if (is_null($calendar)) {
+        return $response->getBody()->write(arrayToJSON(array()));
+    }
+
+    if (
+        !Token::validateUser($calendar->owner_id) &&
+        $calendar->visibility == V_PRIVATE
+    ) {
+        return $response->withStatus(FORBIDDEN);
+    }
+
+    $appointment = Appointment::search($after, $before, $calendarId);
+    $json = arrayToJSON($appointment);
+    return $response->getBody()->write($json);
 });
 ?>

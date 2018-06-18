@@ -5,75 +5,108 @@ require_once 'class/token_class.php';
 require_once 'class/user_class.php';
 require_once 'lib/hash.php';
 
-$app->put('/authentification/register', function ($requ, $resp, $args) {
-    $array = $requ->getParsedBody();
-    $array['user_id'] = -1;
-    $user = USER::byArray($array);
+$app->put('/authentification/register', function (
+    $request,
+    $response,
+    $args
+) {
+    $userData = $request->getParsedBody();
+    $userData['user_id'] = -1;
+
+    $user = USER::byArray($userData);
     $user->hashPassword();
-    $user_id = $user->post();
+
+    $user_id = $user->create();
     if (is_null($user_id)) {
-        return $resp->withStatus(400);
+        return $response->withStatus(400);
     }
+
     Token::set($user_id, 0);
-    $resp->getBody()->write($user_id);
-    return $resp;
+    $response->getBody()->write($user_id);
+    return $response;
 });
 
-$app->get('/authentification/username/{name}', function ($requ, $resp, $args) {
-    $userInDatabase = User::getByExactName($args['name']);
+$app->get('/authentification/username/{name}', function (
+    $request,
+    $response,
+    $args
+) {
+    $userInDatabase = User::byName($args['name']);
     if(!is_null($userInDatabase)) {
-        return $resp->withStatus(200);
+        return $response->withStatus(200);
     }
-    return $resp->withStatus(NO_CONTENT);
+    return $response->withStatus(NO_CONTENT);
 });
 
-$app->post('/authentification/login', function ($requ, $resp, $args) {
-    $loginData = $requ->getParsedBody();
-    $user = User::getByExactName($loginData['user_name']);
+$app->post('/authentification/login', function (
+    $request,
+    $response,
+    $args
+) {
+    $loginData = $request->getParsedBody();
+    $user = User::byName($loginData['user_name']);
     if(is_null($user)) {
-        return $resp->withStatus(404);
+        return $response->withStatus(404);
     }
+
     if(!$user->checkPassword($loginData['password_hash'])) {
-        return $resp->withStatus(400);
+        return $response->withStatus(400);
     }
+
     Token::set($user->user_id, $loginData['long_time']);
-    return $resp->withStatus(200);
+    return $response->withStatus(200);
 });
 
-$app->delete('/authentification/logout', function ($requ, $resp, $args) {
+$app->delete('/authentification/logout', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORISED);
+        return $response->withStatus(UNAUTHORISED);
     }
+
     $uid = Token::getUID();
     if (Token::deleteAllTokens($uid)) {
-        return $resp->withStatus(NO_CONTENT);
+        return $response->withStatus(NO_CONTENT);
     }
-    return $resp->withStatus(500);
+    return $response->withStatus(500);
 });
 
-$app->post('/authentification/password', function ($requ, $resp, $args) {
-    $data = $requ->getParsedBody();
+$app->post('/authentification/password', function (
+    $request,
+    $response,
+    $args
+) {
+    $data = $request->getParsedBody();
+
     $user_id = Token::getUID();
-    $user = User::get($user_id);
+    $user = User::byId($user_id);
     if(is_null($user)) {
-        return $resp->withStatus(400);
+        return $response->withStatus(400);
     }
+
     if(!$user->checkPassword($data['old_password_hash'])) {
-        return $resp->withStatus(400);
+        return $response->withStatus(400);
     }
-    if(!$user->changePassword($data['new_password_hash'])) {
-        return $resp->withStatus(400);
+
+    if(!$user->setPassword($data['new_password_hash'])) {
+        return $response->withStatus(400);
     }
-    return $resp->withStatus(200);
+    return $response->withStatus(200);
 });
 
-$app->get('/authentification/test_token', function ($requ, $resp, $args) {
+$app->get('/authentification/test_token', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
     $uid = Token::getUID();
-    $resp->getBody()->write($uid);
-    return $resp;
+    $response->getBody()->write($uid);
+    return $response;
 });
 
 ?>

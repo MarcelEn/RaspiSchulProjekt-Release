@@ -34,8 +34,7 @@ class User {
         );
     }
 
-    //TODO: change name to byId()
-    public static function get($id)
+    public static function byId($id)
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare("SELECT * FROM User WHERE user_id = ?");
@@ -62,8 +61,7 @@ class User {
         return false;
     }
 
-    //TODO: change name to setPassword()
-    public function changePassword($password)
+    public function setPassword($password)
     {
         $this->password_hash = $password;
         $this->hashPassword();
@@ -82,8 +80,7 @@ class User {
         return $success;
     }
 
-    //TODO: change name to create()
-    public function post()
+    public function create()
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
@@ -105,18 +102,18 @@ class User {
         return null;
     }
 
-    //change name to update()
-    public function put()
+    public function update()
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
             "UPDATE User SET " .
-                "first_name=?, last_name=?, " .
+                "user_name=?, first_name=?, last_name=?, " .
                 "mail=? WHERE user_id=?"
         );
 
         $sql->bind_param(
-            "ssss",
+            "sssss",
+            $this->user_name,
             $this->first_name,
             $this->last_name,
             $this->mail,
@@ -133,7 +130,7 @@ class User {
     public function delete()
     {
         Token::deleteAllTokens($this->user_id);
-        CalendarModel::deleteAllCalendars($this->user_id);
+        CalendarModel::deleteByUser($this->user_id);
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare("DELETE FROM User WHERE user_id = ?");
         $sql->bind_param("i", $this->user_id);
@@ -141,8 +138,7 @@ class User {
         return $success;
     }
 
-    //TODO: change name to search()
-    public static function getByName($name)
+    public static function search($name)
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare("SELECT * FROM User WHERE user_name like ?");
@@ -165,8 +161,7 @@ class User {
         return $array;
     }
 
-    //TODO: change name to byName()
-    public static function getByExactName($name)
+    public static function byName($name)
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare("SELECT * FROM User WHERE user_name = ?");

@@ -4,49 +4,66 @@ require_once 'lib/json_array.php';
 require_once 'class/calendar_class.php';
 require_once 'class/saved_calendar_class.php';
 
-$app->get('/rest/calendar/saved', function ($requ, $resp, $args) {
+$app->get('/rest/calendar/saved', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
+
     $uid = Token::getUID();
-    $array = SavedCalendar::get($uid);
-    $json = arrayToJSON($array);
-    $resp->getBody()->write($json);
-    return $resp;
+    $calendars = SavedCalendar::byUser($uid);
+    $json = arrayToJSON($calendars);
+    $response->getBody()->write($json);
+    return $response;
 });
 
-$app->post('/rest/calendar/saved/{id}', function ($requ, $resp, $args) {
+$app->post('/rest/calendar/saved/{id}', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
-    $calendar = CalendarModel::get($args['id']);
+
+    $calendar = CalendarModel::byId($args['id']);
     if (Token::validateUser($calendar->owner_id)) {
-        return $resp->withStatus(FORBIDDEN);
+        return $response->withStatus(FORBIDDEN);
     }
+
     $uid = Token::getUID();
     $entry = SavedCalendar::getOne($uid, $args['id']);
     if(!is_null($entry)) {
-        return $resp->withStatus(CONFLICT);
+        return $response->withStatus(CONFLICT);
     }
+
     if (SavedCalendar::add($uid, $args['id'])) {
-        return $resp->withStatus(CREATED);
+        return $response->withStatus(CREATED);
     }
-    return $resp;
+    return $response;
 });
 
-$app->delete('/rest/calendar/saved/{id}', function ($requ, $resp, $args) {
+$app->delete('/rest/calendar/saved/{id}', function (
+    $request,
+    $response,
+    $args
+) {
     if (!Token::validate()) {
-        return $resp->withStatus(UNAUTHORIZED);
+        return $response->withStatus(UNAUTHORIZED);
     }
+
     $uid = Token::getUID();
     $calendar = SavedCalendar::getOne($uid, $args['id']);
     if (is_null($calendar)) {
-        return $resp->withStatus(NOT_FOUND);
+        return $response->withStatus(NOT_FOUND);
     }
-    if (SavedCalendar::delete($uid, $args['id'])) {
-        return $resp->withStatus(NO_CONTENT);
-    }
-    return $resp->withStatus(500);
-});
 
+    if (SavedCalendar::delete($uid, $args['id'])) {
+        return $response->withStatus(NO_CONTENT);
+    }
+    return $response->withStatus(500);
+});
 ?>

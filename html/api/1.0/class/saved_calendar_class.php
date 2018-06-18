@@ -4,7 +4,7 @@ require_once 'data/calendar_database.php';
 
 class SavedCalendar {
 
-    public static function get($uid)
+    public static function byUser($uid)
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
@@ -58,6 +58,17 @@ class SavedCalendar {
             "DELETE FROM SavedCalendar WHERE user_id = ? AND calendar_id = ?"
         );
         $sql->bind_param('ii', $uid, $calendar_id);
+        $success = $sql->execute();
+        return $success;
+    }
+
+    public static function deleteByCalendar($calendar_id)
+    {
+        $database = CalendarDatabase::getStd();
+        $sql = $database->prepare(
+            "DELETE FROM SavedCalendar WHERE calendar_id = ?"
+        );
+        $sql->bind_param('i', $calendar_id);
         $success = $sql->execute();
         return $success;
     }

@@ -26,6 +26,7 @@ require 'resources/saved_calendars.php';
 require 'resources/calendar.php';
 require 'resources/appointment.php';
 require 'resources/authentification.php';
+require 'resources/data.php';
 
 $app->get('/version', function ($request, $response, $args) {
     $response->getBody()->write("Raspi-Projekt - Calendar API v1.0");

@@ -32,8 +32,7 @@ class CalendarModel {
         return $calendar;
     }
 
-    //TODO: change name to byId()
-    public static function get($id)
+    public static function byId($id)
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
@@ -51,8 +50,7 @@ class CalendarModel {
         return null;
     }
 
-    //TODO: change name to create()
-    public function post()
+    public function create()
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
@@ -73,8 +71,7 @@ class CalendarModel {
         return null;
     }
 
-    //TODO: change name to update()
-    public function put()
+    public function update()
     {
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
@@ -107,7 +104,8 @@ class CalendarModel {
 
     public function delete()
     {
-        Appointment::deleteAllAppointments($this->calendar_id);
+        Appointment::deleteByCalendar($this->calendar_id);
+        SavedCalendar::deleteByCalendar($this->calendar_id);
         $database = CalendarDatabase::getStd();
         $sql = $database->prepare(
             "DELETE FROM Calendar WHERE calendar_id = ?"
@@ -117,8 +115,7 @@ class CalendarModel {
         return $success;
     }
 
-    //TODO: change name to deleteByUser()
-    public static function deleteAllCalendars($uid) {
+    public static function deleteByUser($uid) {
         $database = CalendarDatabase::getStd();
         $sqlString =
             "SELECT * FROM Calendar" .
@@ -133,8 +130,7 @@ class CalendarModel {
         }
     }
 
-    //TODO: change name to search()
-    public static function getByUserAndSearch($user_id, $search)
+    public static function search($user_id, $search)
     {
         $resultArray = array();
 
@@ -148,7 +144,7 @@ class CalendarModel {
             "SELECT * FROM Calendar" .
             " WHERE calendar_title like ?";
 
-        if(!is_null($user_id)) {
+        if(!is_null($user_id) && $user_id > 0) {
             $sqlString = $sqlString . " AND owner_id = ?";
             $sql = $database->prepare($sqlString);
             $sql->bind_param("si", $search, $user_id);
